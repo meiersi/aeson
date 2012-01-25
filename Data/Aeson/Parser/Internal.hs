@@ -25,9 +25,6 @@ module Data.Aeson.Parser.Internal
     , decodeWith
     ) where
 
-import Blaze.ByteString.Builder (fromByteString, toByteString)
-import Blaze.ByteString.Builder.Char.Utf8 (fromChar)
-import Blaze.ByteString.Builder.Word (fromWord8)
 import Control.Applicative as A
 import Data.Aeson.Types (Result(..), Value(..))
 import Data.Attoparsec.Char8 hiding (Result)
@@ -45,6 +42,7 @@ import qualified Data.Attoparsec.Zepto as Z
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Unsafe as B
+import qualified Data.ByteString.Lazy.Builder as B
 import qualified Data.HashMap.Strict as H
 
 -- | Parse a top-level JSON value.  This must be either an object or
@@ -182,7 +180,7 @@ jstring_ = {-# SCC "jstring_" #-} do
 {-# INLINE jstring_ #-}
 
 unescape :: Z.Parser ByteString
-unescape = toByteString <$> go mempty where
+unescape = (L.toStrict . B.toLazyByteString) <$> go mempty where
   go acc = do
     h <- Z.takeWhile (/=backslash)
     let rest = do
@@ -195,24 +193,24 @@ unescape = toByteString <$> go mempty where
           if slash /= backslash || escape == 255
             then fail "invalid JSON escape sequence"
             else do
-            let cont m = go (acc `mappend` fromByteString h `mappend` m)
+            let cont m = go (acc `mappend` B.byteString h `mappend` m)
                 {-# INLINE cont #-}
             if t /= 117 -- 'u'
-              then cont (fromWord8 (B.unsafeIndex mapping escape))
+              then cont (B.word8 (B.unsafeIndex mapping escape))
               else do
                    a <- hexQuad
                    if a < 0xd800 || a > 0xdfff
-                     then cont (fromChar (chr a))
+                     then cont (B.charUtf8 (chr a))
                      else do
                        b <- Z.string "\\u" *> hexQuad
                        if a <= 0xdbff && b >= 0xdc00 && b <= 0xdfff
                          then let !c = ((a - 0xd800) `shiftL` 10) +
                                        (b - 0xdc00) + 0x10000
-                              in cont (fromChar (chr c))
+                              in cont (B.charUtf8 (chr c))
                          else fail "invalid UTF-16 surrogates"
     done <- Z.atEnd
     if done
-      then return (acc `mappend` fromByteString h)
+      then return (acc `mappend` B.byteString h)
       else rest
   mapping = "\"\\/\n\t\b\r\f"
 

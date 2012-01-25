@@ -8,9 +8,8 @@ executable aeson-benchmark-compare-with-json
   main-is: CompareWithJSON.hs
   ghc-options: -Wall -O2
   build-depends:
-    aeson,
+    aeson >= 0.7,
     base,
-    blaze-builder,
     bytestring,
     criterion,
     json

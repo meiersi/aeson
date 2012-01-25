@@ -8,16 +8,9 @@ import Data.Time.Clock
 import System.Environment (getArgs)
 import System.IO
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Lazy as L
-import qualified Data.ByteString.Lazy.Internal as L
 import Control.DeepSeq
 
-instance NFData L.ByteString where
-    rnf = go
-      where go (L.Chunk _ cs) = go cs
-            go L.Empty        = ()
-    {-# INLINE rnf #-}
-
+main :: IO ()
 main = do
   (cnt:args) <- getArgs
   let count = read cnt :: Int

@@ -12,7 +12,8 @@ executable aeson-benchmark-compare-with-json
     base,
     bytestring,
     criterion,
-    json
+    json,
+    text
 
 executable aeson-benchmark-aeson-encode
   main-is: AesonEncode.hs

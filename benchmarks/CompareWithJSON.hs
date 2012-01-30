@@ -7,6 +7,9 @@ import qualified Data.Aeson.EncodeUtf8 as AUTF8
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Builder  as B
 import qualified Text.JSON as J
+import qualified Data.Text          as T
+import qualified Data.Text.Encoding as T
+import qualified Data.ByteString.Lazy.Builder.BasicEncoding as E
 
 instance (NFData v) => NFData (J.JSObject v) where
   rnf o = rnf (J.fromJSObject o)
@@ -33,6 +36,9 @@ decodeA s = case A.decode s of
 encodeJ :: J.JSValue -> BL.ByteString
 encodeJ = B.toLazyByteString . B.stringUtf8 . J.encode
 
+builderEncodeUtf8 :: T.Text -> BL.ByteString
+builderEncodeUtf8 = B.toLazyByteString . T.encodeTextWithB E.charUtf8
+
 main :: IO ()
 main = do
   let enFile = "json-data/twitter100.json"
@@ -47,6 +53,8 @@ main = do
   numJ <- readFile numFile
   intA <- BL.readFile intFile
   intJ <- readFile intFile
+  let enText = T.pack enJ
+      jpText = T.pack enJ
   defaultMain [
       bgroup "decode" [
         bgroup "en" [
@@ -59,7 +67,17 @@ main = do
         ]
       ]
     , bgroup "encode" [
-        bgroup "en" [
+        bgroup "utf8" [
+          bgroup "en" [
+            bench "text"     $ nf T.encodeUtf8      enText
+          , bench "builder"  $ nf builderEncodeUtf8 enText
+          ]
+        , bgroup "jp" [
+            bench "text"    $ nf T.encodeUtf8      jpText
+          , bench "builder" $ nf builderEncodeUtf8 jpText
+          ]
+        ]
+      , bgroup "en" [
           bench "aeson" $ nf A.encode (decodeA enA)
         , bench "aesonUtf8" $ nf AUTF8.encode (decodeA enA)
         , bench "json"  $ nf encodeJ (decodeJ enJ)

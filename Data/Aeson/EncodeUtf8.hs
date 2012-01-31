@@ -33,6 +33,8 @@ import qualified Data.HashMap.Strict as H
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Vector as V
+import Data.Word
+import Data.Char (ord)
 
 -- | Encode a JSON value to a 'Builder'.  You can convert this to a
 -- string using e.g. 'toLazyText', or encode straight to UTF-8 (the
@@ -43,18 +45,18 @@ value (Bool b)   = {-# SCC "fromValue/Bool"   #-} bool b
 value (Number n) = {-# SCC "fromValue/Number" #-} number n
 value (String s) = {-# SCC "fromValue/String" #-} string s
 value (Array v)
-    | V.null v = {-# SCC "value/Array" #-} B.char7 '[' <> B.char7 ']'
+    | V.null v = {-# SCC "value/Array" #-} B.char8 '[' <> B.char8 ']'
     | otherwise = {-# SCC "value/Array" #-}
-                  B.char7 '[' <>
+                  B.char8 '[' <>
                   value (V.unsafeHead v) <>
-                  V.foldr f (B.char7 ']') (V.unsafeTail v)
-  where f a z = B.char7 ',' <> value a <> z
+                  V.foldr f (B.char8 ']') (V.unsafeTail v)
+  where f a z = B.char8 ',' <> value a <> z
 value (Object m) = {-# SCC "fromValue/Object" #-}
     case H.toList m of
-      (x:xs) -> B.char7 '{' <> one x <> foldr f (B.char7 '}') xs
-      _      -> B.char7 '{' <> B.char7 '}'
-  where f a z     = B.char7 ',' <> one a <> z
-        one (k,v) = string k <> B.char7 ':' <> value v
+      (x:xs) -> B.char8 '{' <> one x <> foldr f (B.char8 '}') xs
+      _      -> B.char8 '{' <> B.char8 '}'
+  where f a z     = B.char8 ',' <> one a <> z
+        one (k,v) = string k <> B.char8 ':' <> value v
 
 {-# INLINE null #-}
 null :: Builder
@@ -66,22 +68,23 @@ bool = E.encodeWithB (ifB id (ascii4  ((('t','r'),'u'),'e'))
 
 string :: T.Text -> Builder
 string s = {-# SCC "string" #-} 
-    B.char7 '"' <> T.encodeTextWithB escape s <> B.char7 '"'
+    B.char8 '"' <> T.encodeUtf8Escaped escape s <> B.char8 '"'
   where
-    escape :: BoundedEncoding Char
-    escape = 
-      ifB (>  '\\'  ) E.charUtf8 $
-      ifB (== '\\'  ) (ascii2 ('\\','\\')) $
-      ifB (== '\"'  ) (ascii2 ('\\','"' )) $
-      ifB (>= '\x20') (fromF E.char7) $
-      ifB (== '\n'  ) (ascii2 ('\\','n' )) $
-      ifB (== '\r'  ) (ascii2 ('\\','r' )) $
-      ifB (== '\t'  ) (ascii2 ('\\','t' )) $
+    c2w = fromIntegral . ord
+
+    escape :: BoundedEncoding Word8
+    escape =
+      ifB (== c2w '\\'  ) (ascii2 ('\\','\\')) $
+      ifB (== c2w '\"'  ) (ascii2 ('\\','"' )) $
+      ifB (>= c2w '\x20') (fromF E.word8) $
+      ifB (== c2w '\n'  ) (ascii2 ('\\','n' )) $
+      ifB (== c2w '\r'  ) (ascii2 ('\\','r' )) $
+      ifB (== c2w '\t'  ) (ascii2 ('\\','t' )) $
       (fromF hexChar) -- fallback for chars < 0x20
 
-    hexChar :: FixedEncoding Char
-    hexChar = (\c -> (('\\','u'), fromIntegral (fromEnum c))) >$< 
-      E.char7 `pairF` E.char7 `pairF` E.word16HexFixed
+    hexChar :: FixedEncoding Word8
+    hexChar = (\c -> (('\\','u'), fromIntegral c)) >$< 
+      E.char8 `pairF` E.char8 `pairF` E.word16HexFixed
 
 number :: Number -> Builder
 number (I i) = B.integerDec i
@@ -103,15 +106,15 @@ infixr 6 <>
 
 {-# INLINE ascii2 #-}
 ascii2 :: (Char, Char) -> BoundedEncoding a
-ascii2 cs = fromF $ (const cs) >$< E.char7 `pairF` E.char7
+ascii2 cs = fromF $ (const cs) >$< E.char8 `pairF` E.char8
 
 {-# INLINE ascii4 #-}
 ascii4 :: (((Char, Char), Char), Char) -> BoundedEncoding a
 ascii4 cs = fromF $ (const cs) >$< 
-    E.char7 `pairF` E.char7 `pairF` E.char7 `pairF` E.char7
+    E.char8 `pairF` E.char8 `pairF` E.char8 `pairF` E.char8
 
 {-# INLINE ascii5 #-}
 ascii5 :: ((((Char, Char), Char), Char), Char) -> BoundedEncoding a
 ascii5 cs = fromF $ (const cs) >$< 
-    E.char7 `pairF` E.char7 `pairF` E.char7 `pairF` E.char7 `pairF` E.char7
+    E.char8 `pairF` E.char8 `pairF` E.char8 `pairF` E.char8 `pairF` E.char8
 

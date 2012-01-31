@@ -58,6 +58,29 @@ main = do
   intJ <- readFile intFile
   let enText = T.pack enJ
       jpText = T.pack enJ
+      
+      equal [] = True
+      equal xs = and $ zipWith (==) xs (tail xs)
+
+  if (all equal [ [ A.encode (decodeA enA) 
+                  , AUTF8.encode (decodeA enA)
+                  -- , encodeJ (decodeJ enJ)
+                  ]
+                , [ A.encode (decodeA jpA)
+                  , AUTF8.encode (decodeA jpA)
+                  -- , encodeJ (decodeJ jpJ)
+                  ]
+                , [ A.encode (decodeA numA)
+                  , AUTF8.encode (decodeA numA)
+                  -- , encodeJ (decodeJ numJ)
+                  ]
+                , [ A.encode (decodeA intA)
+                  , AUTF8.encode (decodeA intA)
+                  -- , encodeJ (decodeJ intJ)
+                  ]
+                ] )
+    then putStrLn $ "GOOD: all aeson encoders yield the same result."
+    else putStrLn $ "WARNING: some aeson encoders yield different result."
   defaultMain [
       bgroup "decode" [
         bgroup "en" [

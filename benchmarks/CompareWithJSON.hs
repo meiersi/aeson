@@ -39,6 +39,9 @@ encodeJ = B.toLazyByteString . B.stringUtf8 . J.encode
 builderEncodeUtf8 :: T.Text -> BL.ByteString
 builderEncodeUtf8 = B.toLazyByteString . T.encodeTextWithB E.charUtf8
 
+builderEncodeUtf8New :: T.Text -> BL.ByteString
+builderEncodeUtf8New = B.toLazyByteString . T.encodeUtf8Builder
+
 main :: IO ()
 main = do
   let enFile = "json-data/twitter100.json"
@@ -70,10 +73,12 @@ main = do
         bgroup "utf8" [
           bgroup "en" [
             bench "text"     $ nf T.encodeUtf8      enText
+          , bench "builder-new"  $ nf builderEncodeUtf8New enText
           , bench "builder"  $ nf builderEncodeUtf8 enText
           ]
         , bgroup "jp" [
             bench "text"    $ nf T.encodeUtf8      jpText
+          , bench "builder-new" $ nf builderEncodeUtf8New jpText
           , bench "builder" $ nf builderEncodeUtf8 jpText
           ]
         ]

@@ -92,37 +92,37 @@ main = do
         , bench "json"  $ nf decodeJ jpJ
         ]
       ]
-    , bgroup "encode" [
-        bgroup "utf8" [
-          bgroup "en" [
-            bench "text"     $ nf T.encodeUtf8      enText
-          , bench "builder-new"  $ nf builderEncodeUtf8New enText
-          , bench "builder"  $ nf builderEncodeUtf8 enText
-          ]
-        , bgroup "jp" [
-            bench "text"    $ nf T.encodeUtf8      jpText
-          , bench "builder-new" $ nf builderEncodeUtf8New jpText
-          , bench "builder" $ nf builderEncodeUtf8 jpText
-          ]
+    , bgroup "utf8-encoding" [
+        bgroup "en" [
+          bench "text-hand-coded"     $ nf T.encodeUtf8      enText
+        , bench "builder-new"  $ nf builderEncodeUtf8New enText
+        , bench "builder-streaming"  $ nf builderEncodeUtf8 enText
         ]
-      , bgroup "en" [
-          bench "aeson" $ nf A.encode (decodeA enA)
-        , bench "aesonUtf8" $ nf AUTF8.encode (decodeA enA)
+      , bgroup "jp" [
+          bench "text-hand-coded"    $ nf T.encodeUtf8      jpText
+        , bench "builder-new" $ nf builderEncodeUtf8New jpText
+        , bench "builder-streaming" $ nf builderEncodeUtf8 jpText
+        ]
+      ]
+    , bgroup "encode" [
+        bgroup "en" [
+          bench "aeson-text-builder" $ nf A.encode (decodeA enA)
+        , bench "aeson-new-builder" $ nf AUTF8.encode (decodeA enA)
         , bench "json"  $ nf encodeJ (decodeJ enJ)
         ]
       , bgroup "jp" [
-          bench "aeson" $ nf A.encode (decodeA jpA)
-        , bench "aesonUtf8" $ nf AUTF8.encode (decodeA jpA)
+          bench "aeson-text-builder" $ nf A.encode (decodeA jpA)
+        , bench "aeson-new-builder" $ nf AUTF8.encode (decodeA jpA)
         , bench "json"  $ nf encodeJ (decodeJ jpJ)
         ]
       , bgroup "num" [
-          bench "aeson" $ nf A.encode (decodeA numA)
-        , bench "aesonUtf8" $ nf AUTF8.encode (decodeA numA)
+          bench "aeson-text-builder" $ nf A.encode (decodeA numA)
+        , bench "aeson-new-builder" $ nf AUTF8.encode (decodeA numA)
         , bench "json"  $ nf encodeJ (decodeJ numJ)
         ]
       , bgroup "int" [
           bench "aeson" $ nf A.encode (decodeA intA)
-        , bench "aesonUtf8" $ nf AUTF8.encode (decodeA intA)
+        , bench "aeson-new-builder" $ nf AUTF8.encode (decodeA intA)
         , bench "json"  $ nf encodeJ (decodeJ intJ)
         ]
       ]
